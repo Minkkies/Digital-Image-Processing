@@ -1,11 +1,16 @@
 import numpy as np
+from my_tools import showImg
+import cv2
+
+def normalization(data):
+	"""Normalize array to range [0, 1]"""
+	min_val = np.min(data)
+	max_val = np.max(data)
+	if max_val - min_val == 0:
+		return np.zeros_like(data, dtype=np.float32)
+	return (data - min_val) / (max_val - min_val)
 
 def manual_grayscale(image):
-	"""Convert BGR image to grayscale using weighted average.
-
-	Assumes OpenCV BGR channel order.
-	"""
-	
     # ตรวจสอบว่า image เป็น NumPy array และมี 3 หรือ 4 ช่อง (BGR หรือ BGRA)
 	if image is None:
 		raise ValueError("image is None")
@@ -14,9 +19,16 @@ def manual_grayscale(image):
 
     # แยกช่อง B, G, R ออกจากกันและแปลงเป็น float32 สำหรับการคำนวณ
 	# หรือ ใช้ method cv2.split(img) จะ return เป็น B G R channels 
-	b = image[:, :, 0].astype(np.float32)
-	g = image[:, :, 1].astype(np.float32)
-	r = image[:, :, 2].astype(np.float32)
+	b = image[:, :, 0]
+	g = image[:, :, 1]
+	r = image[:, :, 2]
+
+	concatImg = cv2.hconcat([b, g, r])
+	showImg.show_img_gray(concatImg, title='BGR Channels')  # แสดงช่องสีแต่ละสีเพื่อดูข้อมูลในช่องนั้น
+
+	b = b.astype(np.float32)
+	g = g.astype(np.float32)
+	r = r.astype(np.float32)
 
     # r คือช่อง Red ที่มีขนาดเท่ากับภาพ จะเอาสีอื่นมาใช้ก็ได้เพราะขนาดเท่ากัน
 	row, col = r.shape 
@@ -31,8 +43,21 @@ def manual_grayscale(image):
 
 	return gray.astype(np.uint8)
 
+# ทำงานเหมือนข้างบนแต่เขียนอีกแบบที่ ใช้การคูณเมทริกซ์เพื่อให้เร็วขึ้น
+def color_to_gray(img):
+    a = [0.114, 0.587, 0.299]
+    row, col, ch = img.shape 
+    gray = np.zeros_like(img[:,:,0], dtype=np.float64)
+
+    for i in range(ch):
+        gray += a[i] * img[:,:,i]
+
+    gray = gray.astype(np.uint8)
+    return gray
+
 # ฟังก์ชันสำหรับปรับความสว่างของภาพด้วยการแก้ไขแกมมา (Gamma Correction)
 # แปลงข้อมูลเป็น float >> Normalize >> ยกกำลังด้วย gamma (ยิ่งน้อย ยิ่งสว่าง) >> คูณด้วย 255 แล้วแปลงกลับเป็น uint8
+# ไม่ได้แปลงแค่สีเทา แต่แปลงได้กับภาพสีด้วยการแยกช่องสีแล้วปรับแกมมาทีละช่อง
 def gamma_correction(gray: np.ndarray, gamma: float):
 	"""Brighten/darken grayscale image with gamma correction.
 	สำหรับปรับภาพมืดให้สว่างขึ้นด้วย γ<1 ex:gamma = 0.5 
@@ -45,7 +70,7 @@ def gamma_correction(gray: np.ndarray, gamma: float):
 	if gamma <= 0:
 		raise ValueError("gamma must be > 0")
 
-	normalized = gray.astype(np.float32) / 255.0
+	normalized = normalization(gray)  # Normalize to [0, 1]
 	corrected = np.power(normalized, gamma)
 	
     # np.clip(gray, 0, 255) บังคับให้ค่าพิกเซลอยู่ในช่วง 0–255 (กันค่าหลุดช่วง)

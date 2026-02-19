@@ -9,30 +9,39 @@ import os
 import cv2
 import numpy as np
 from my_tools.showImg import show_img_gray
-from my_tools.hist import calculate_histogram, plot_histogram, compare_histograms
+from my_tools.hist import calculate_histogram, plot_histogram, compare_histograms, histogram_equalization
 
 img = cv2.imread('./img/pic2.png', cv2.IMREAD_GRAYSCALE)
-print(f"img min : {np.min(img)} , img max : {np.max(img)}")
-# min : 76 , img max : 218
-# ความเข้มของภาพ ค่อนข้างสว่าง เพราะความเข้มที่ต่ำที่สุด มีความเข้มถึง 76 ส่งผลให้ภาพสว่างเกินไป
-# ต้องปรับภาพให้กระจายตัวเต็ม Scale 0-255 เพื่อให้ภาพมีมิติมากยิ่งขึ้น ด้วยการปรับ Contrast ด้วย Histogram 
 
+# ความเข้มของภาพ ค่อนข้างสว่าง เพราะความเข้มที่ต่ำที่สุด มีความเข้มถึง 76 ส่งผลให้ภาพสว่างเกินไป
+# ต้องปรับภาพให้กระจายตัวเต็ม Scale 0-255 เพื่อให้ภาพมีมิติมากยิ่งขึ้น ด้วยการปรับ Contrast ด้วย Histogram Equalization 
+# เพราะภาพของเรา มีปัญหาเรื่อง Low Contrast ที่ทำให้รายละเอียดในภาพไม่ชัดเจน 
 # ปรับ Contrast ด้วย Histogram Equalization
 hist1 = calculate_histogram(img)
 plot_histogram(hist1, title='Original Histogram')
+print(f"img min : {np.min(img)} , img max : {np.max(img)}")
+# min : 76 , img max : 218
 
-# การทำ linear stretching เพื่อปรับ Contrast
-img_new = img - np.min(img) # เลื่อนให้ค่าต่ำสุด = 0
-img_new = (img_new.astype('float')/np.max(img_new) * 255.0).astype('uint8')# ขยายช่วงให้เต็ม 0-255
-print(f"img_new min : {np.min(img_new)} , img_new max : {np.max(img_new)}")
-# Output >> img_new min : 0 , img_new max : 255
+# จาก histogram จะเห็นว่าความถี่ของ pixel กระจุกตัวกันอยู่ตรงกลาง
+# ไม่กระจายตัวเต็ม scale 0-255 
+# สรุปได้ว่าเป็น ภาพที่ Low Contrast
+# แก้ได้โดย Histogram equalization
+equalized_img = histogram_equalization(img)
 
-hist2 = calculate_histogram(img_new)
-plot_histogram(hist2, title='New Histogram')
+# เรียก functionที่เขียนเองเพื่อ แสดง histogram ของภาพที่ผ่านการ equalization แล้ว
+equalized_hist = calculate_histogram(equalized_img)
+plot_histogram(equalized_hist, title='Equalized Histogram')
+print(f"equalized min : {np.min(equalized_img)} , equalized max : {np.max(equalized_img)}")
 
 # เปรียบเทียบ Histogram ของภาพต้นฉบับและภาพที่ปรับปรุงแล้ว
-compareImg = compare_histograms(hist1, hist2, title1='Original', title2='New')
-concatImg = cv2.hconcat([img, img_new])
-show_img_gray(concatImg, title='Original (Left) vs New (Right)')
-cv2.imwrite('./output_img/ResultQ2.jpg',concatImg)
-print(np.min(img_new))
+compare_histograms(hist1, equalized_hist, title1='Original', title2='Equalized')
+concatImg = cv2.hconcat([img, equalized_img])
+show_img_gray(concatImg, title='Original (Left) vs Equalized (Right)')
+cv2.imwrite('./output_img/ResultQ2.jpg', concatImg)
+
+# ผลลัพธ์:
+# Linear Stretching ใช้เฉพาะค่า min/max → ยืดทั้งภาพเท่ากัน
+# Histogram Equalization ปรับตามการกระจายของพิกเซล → เพิ่มรายละเอียดในช่วงที่ข้อมูลอัดแน่น
+# เหมาะกับ:
+# Linear Stretching: ภาพที่ช่วงสว่างแคบ แต่กระจายค่อนข้างสม่ำเสมอ
+# Histogram Equalization: ภาพที่ histogram “กอง” อยู่ช่วงใดช่วงหนึ่ง

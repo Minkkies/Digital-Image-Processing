@@ -8,7 +8,7 @@ def show_img_color(image, title='Output Image'):
     :param title: ชื่อหัวข้อของภาพ
     """
     # แปลงภาพจาก BGR เป็น RGB สำหรับการแสดงผลที่ถูกต้อง
-    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
+    image_rgb = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) # มันมี3ช่องสี 
     
     # แสดงภาพด้วย Matplotlib
     plt.figure(figsize=(10, 6))

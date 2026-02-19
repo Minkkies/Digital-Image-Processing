@@ -5,12 +5,6 @@ import matplotlib.pyplot as plt
 def calculate_histogram(gray_image):
     """
     คำนวณ histogram ของภาพเทาแบบเขียนเอง (ไม่ใช้ฟังก์ชันสำเร็จรูป)
-    
-    Parameters:
-        gray_image: ภาพเทา (2D array) ค่า 0-255
-    
-    Returns:
-        hist: array ขนาด 256 เก็บจำนวนพิกเซลของแต่ละค่าความสว่าง
     """
     if gray_image.ndim != 2:
         raise ValueError("gray_image must be a 2D grayscale image")
@@ -31,10 +25,6 @@ def calculate_histogram(gray_image):
 def plot_histogram(hist1, title='Histogram'):
     """
     แสดงกราฟ histogram ของภาพเทา
-    
-    Parameters:
-        gray_image: ภาพเทา (2D array)
-        title: ชื่อกราฟ
     """
     
     # แสดงกราฟ
@@ -50,12 +40,6 @@ def plot_histogram(hist1, title='Histogram'):
 def compare_histograms(original, enhanced, title1='Original', title2='Enhanced'):
     """
     แสดง histogram ของภาพต้นฉบับและภาพที่ปรับปรุงแล้วเคียงข้างกัน
-    
-    Parameters:
-        original: ภาพต้นฉบับ (grayscale)
-        enhanced: ภาพที่ปรับปรุงแล้ว (grayscale)
-        title1: ชื่อกราฟภาพต้นฉบับ
-        title2: ชื่อกราฟภาพที่ปรับปรุง
     """
     
     plt.figure(figsize=(14, 4))
@@ -80,3 +64,38 @@ def compare_histograms(original, enhanced, title1='Original', title2='Enhanced')
     
     plt.tight_layout()
     plt.show()
+
+def histogram_equalization(original_img):
+    """
+    Histogram Equalization เขียนมือเอง
+    
+    ขั้นตอน:
+    1. คำนวณ histogram ของภาพต้นฉบับ
+    2. คำนวณ CDF (Cumulative Distribution Function)
+    3. Normalize CDF เป็นค่า 0-255
+    4. Map พิกเซลแต่ละค่าไปยังค่าใหม่จาก transformation function
+    
+    Parameters:
+        original_img: ภาพเทา (2D array) ค่า 0-255
+    
+    Returns:
+        equalized_img: ภาพหลังจากการ equalization
+    """
+    
+    # Step 1: คำนวณ histogram ของภาพต้นฉบับ
+    hist = calculate_histogram(original_img)
+    
+    # Step 2: คำนวณ CDF (Cumulative Distribution Function)
+    # CDF เป็นการสะสมของ histogram
+    cdf = np.cumsum(hist)
+    
+    # Step 3: Normalize CDF เป็นค่า 0-255
+    # สูตร: CDF_normalized = (CDF - CDF_min) / (CDF_max - CDF_min) * 255
+    cdf_min = cdf[cdf > 0].min()  # ค่า CDF ที่ไม่ใช่ 0 ที่เล็กที่สุด
+    cdf_normalized = ((cdf - cdf_min) / (cdf.max() - cdf_min) * 255).astype(np.uint8)
+    
+    # Step 4: Map พิกเซลเดิมไปยังค่าใหม่
+    # ใช้ cdf_normalized เป็น lookup table
+    equalized_img = cdf_normalized[original_img]
+    
+    return equalized_img
